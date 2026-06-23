@@ -4,11 +4,11 @@
     "slug": "sltet",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/slt_logo.jpeg",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/slt_logo.jpeg",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -16,14 +16,20 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.slt.tours",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/slt_logo.jpeg",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/slt_logo.jpeg"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "12240921-5d5a-4d32-98b8-fe400a72f01d"
+      }
     }
   }
 }

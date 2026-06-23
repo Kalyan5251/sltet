@@ -11,8 +11,11 @@ import { COLORS, SPACE, ROUNDING, SHADOWS } from '../../theme/Theme';
 
 const expenseSchema = z.object({
   amount: z.number().positive("Amount must be positive"),
-  description: z.string().min(3, "Description must be at least 3 characters")
+  description: z.string().min(3, "Description must be at least 3 characters"),
+  category: z.string().min(1, "Category is required")
 });
+
+const CATEGORIES = ['food', 'water', 'transport', 'accommodation', 'fuel', 'others'];
 
 export const TourDetailScreen = ({ route, navigation }) => {
   const { tourId, tourName, pricePerHead } = route.params;
@@ -22,6 +25,7 @@ export const TourDetailScreen = ({ route, navigation }) => {
   
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('others');
   const [addingExpense, setAddingExpense] = useState(false);
 
   useEffect(() => {
@@ -44,15 +48,17 @@ export const TourDetailScreen = ({ route, navigation }) => {
     try {
       const validatedData = expenseSchema.parse({
         amount: Number(amount),
-        description: description.trim()
+        description: description.trim(),
+        category: category
       });
 
       setAddingExpense(true);
-      const result = await addExpense(tourId, user.uid, user.email, validatedData.amount, validatedData.description);
+      const result = await addExpense(tourId, user.uid, user.email, validatedData.amount, validatedData.description, validatedData.category);
       
       if (result.success) {
         setAmount('');
         setDescription('');
+        setCategory('others');
       } else {
         Alert.alert("Error", "Failed to add expense");
       }
@@ -110,6 +116,22 @@ export const TourDetailScreen = ({ route, navigation }) => {
              style={styles.input} placeholder="Description (e.g. Lunch)" placeholderTextColor={COLORS.textLight}
              value={description} onChangeText={setDescription}
            />
+
+           {/* Category Selection */}
+           <Text style={styles.formLabel}>Category</Text>
+           <View style={styles.categoryPickerRow}>
+             {CATEGORIES.map((cat) => (
+               <TouchableOpacity
+                 key={cat}
+                 style={[styles.catBtn, category === cat && styles.catBtnActive]}
+                 onPress={() => setCategory(cat)}
+               >
+                 <Text style={[styles.catBtnText, category === cat && styles.catBtnTextActive]}>
+                   {cat.toUpperCase()}
+                 </Text>
+               </TouchableOpacity>
+             ))}
+           </View>
            
            <TouchableOpacity style={styles.submitButton} onPress={handleAddExpense} disabled={addingExpense}>
              <LinearGradient colors={[COLORS.primary, COLORS.secondary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.submitGradient}>
@@ -157,8 +179,22 @@ const styles = StyleSheet.create({
   formContainer: { marginHorizontal: SPACE.md, marginBottom: SPACE.md },
   formCard: { backgroundColor: COLORS.white, padding: SPACE.md, borderRadius: ROUNDING.lg, ...SHADOWS.glass, borderWidth: 1, borderColor: '#e2e8f0' },
   formTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text, marginBottom: SPACE.sm },
+  formLabel: { fontSize: 13, fontWeight: '700', color: COLORS.text, marginBottom: 4 },
   inputRow: { flexDirection: 'row', marginBottom: SPACE.sm },
-  input: { backgroundColor: '#f8fafc', padding: SPACE.md, borderRadius: ROUNDING.md, fontSize: 16, color: COLORS.text, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: SPACE.sm },
+  input: { backgroundColor: '#f8fafc', padding: SPACE.sm + 2, borderRadius: ROUNDING.sm, fontSize: 15, color: COLORS.text, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: SPACE.sm },
+  
+  categoryPickerRow: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: SPACE.md, marginTop: 4,
+    backgroundColor: '#f8fafc', padding: 6, borderRadius: ROUNDING.md, borderWidth: 1, borderColor: '#e2e8f0'
+  },
+  catBtn: {
+    paddingVertical: 8, paddingHorizontal: 12, borderRadius: ROUNDING.sm,
+    backgroundColor: COLORS.white, borderWidth: 1, borderColor: '#e2e8f0',
+  },
+  catBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  catBtnText: { fontSize: 10, fontWeight: '700', color: COLORS.textLight },
+  catBtnTextActive: { color: COLORS.white },
+
   submitButton: { borderRadius: ROUNDING.md, overflow: 'hidden', marginTop: SPACE.xs },
   submitGradient: { padding: SPACE.md, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: SPACE.sm },
   submitText: { color: COLORS.white, fontSize: 16, fontWeight: 'bold' },

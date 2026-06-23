@@ -22,9 +22,16 @@ export const ExpenseCard = ({ expense, isAdmin, onDelete, onEdit }) => {
       >
         <View style={styles.content}>
           <View style={styles.leftContent}>
-            <Text style={styles.description} numberOfLines={2}>
-              {expense.description}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: SPACE.xs }}>
+              <Text style={styles.description} numberOfLines={2}>
+                {expense.description}
+              </Text>
+              {expense.category && (
+                <View style={styles.catBadge}>
+                  <Text style={styles.catBadgeText}>{expense.category.toUpperCase()}</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.date}>{formattedDate}</Text>
             {isAdmin && (expense.userEmail || expense.userId) && (
               <Text style={styles.userBadge}>{expense.userEmail || `User ID: ${expense.userId.substring(0, 8)}...`}</Text>
@@ -80,7 +87,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text,
-    marginBottom: SPACE.xs,
+  },
+  catBadge: {
+    backgroundColor: '#e0e7ff',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 0.5,
+    borderColor: COLORS.primary,
+  },
+  catBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: COLORS.primary,
   },
   date: {
     fontSize: 12,

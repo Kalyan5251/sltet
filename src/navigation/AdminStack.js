@@ -3,8 +3,10 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TourListScreen } from '../screens/Admin/TourListScreen';
 import { TourDetailScreen } from '../screens/Admin/TourDetailScreen';
 import { CreateTourScreen } from '../screens/Admin/CreateTourScreen';
+import { EditTourScreen } from '../screens/Admin/EditTourScreen';
 import { CustomerListScreen } from '../screens/Shared/CustomerListScreen';
 import { AddCustomerScreen } from '../screens/Admin/AddCustomerScreen';
+import { EditCustomerScreen } from '../screens/Admin/EditCustomerScreen';
 import { CustomerDetailScreen } from '../screens/Shared/CustomerDetailScreen';
 import { COLORS } from '../theme/Theme';
 
@@ -21,9 +23,11 @@ export const AdminStack = () => {
     >
       <Stack.Screen name="TourList" component={TourListScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CreateTour" component={CreateTourScreen} options={{ presentation: 'modal', title: 'New Tour' }} />
+      <Stack.Screen name="EditTour" component={EditTourScreen} options={{ presentation: 'modal', title: 'Edit Tour' }} />
       <Stack.Screen name="TourDetail" component={TourDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CustomerList" component={CustomerListScreen} options={{ headerShown: false }} />
       <Stack.Screen name="AddCustomer" component={AddCustomerScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="EditCustomer" component={EditCustomerScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CustomerDetail" component={CustomerDetailScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );

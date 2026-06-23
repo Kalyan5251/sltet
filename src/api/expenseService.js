@@ -37,7 +37,7 @@ export const subscribeToExpensesByTour = (tourId, userId, role, callback) => {
   });
 };
 
-export const addExpense = async (tourId, userId, userEmail, amount, description) => {
+export const addExpense = async (tourId, userId, userEmail, amount, description, category = 'others') => {
   try {
     const docRef = await addDoc(collection(db, EXPENSES_COLLECTION), {
       tourId,
@@ -45,6 +45,7 @@ export const addExpense = async (tourId, userId, userEmail, amount, description)
       userEmail,
       amount: Number(amount),
       description: description.trim(),
+      category: category.toLowerCase().trim(),
       createdAt: serverTimestamp()
     });
     return { success: true, id: docRef.id };
@@ -64,12 +65,13 @@ export const deleteExpense = async (expenseId) => {
   }
 };
 
-export const updateExpense = async (expenseId, amount, description) => {
+export const updateExpense = async (expenseId, amount, description, category = 'others') => {
   try {
     const expenseRef = doc(db, EXPENSES_COLLECTION, expenseId);
     await updateDoc(expenseRef, {
       amount: Number(amount),
-      description: description.trim()
+      description: description.trim(),
+      category: category.toLowerCase().trim()
     });
     return { success: true };
   } catch (error) {

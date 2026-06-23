@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronLeft, Plus, Trash2 } from 'lucide-react-native';
-import { createCustomerAndMembers } from '../../api/customerService';
+import { updateCustomerAndMembers } from '../../api/customerService';
+import { subscribeToMembersByCustomer } from '../../api/memberService';
 import { COLORS, SPACE, ROUNDING, SHADOWS } from '../../theme/Theme';
 import { DatePicker } from '../../components/DatePicker';
 import { z } from 'zod';
@@ -16,30 +17,53 @@ const memberSchema = z.object({
 
 const membersArraySchema = z.array(memberSchema).min(1, "At least one member is required");
 
-export const AddCustomerScreen = ({ route, navigation }) => {
-  const { tourId, tourName, pricePerHead, startDate } = route.params;
+export const EditCustomerScreen = ({ route, navigation }) => {
+  const { customer, tourName, pricePerHead } = route.params;
   
-  const [groupType, setGroupType] = useState('single'); // single, couple, family
-  const [members, setMembers] = useState([{ id: Date.now().toString(), name: '', age: '', gender: 'male' }]);
+  const [groupType, setGroupType] = useState(customer.groupType || 'single');
+  const [members, setMembers] = useState([]);
   const [headIndex, setHeadIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
   
-  // New Booking Fields
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [pnr, setPnr] = useState('');
-  const [bookingType, setBookingType] = useState('tour'); // tour, flight, train, bus
+  // Booking Fields from Customer Document
+  const [phoneNumber, setPhoneNumber] = useState(customer.phoneNumber || '');
+  const [pnr, setPnr] = useState(customer.pnr || '');
+  const [bookingType, setBookingType] = useState(customer.bookingType || 'tour'); // tour, flight, train, bus
   
   // Helper to safely parse dates
   const parseDate = (d) => {
-    if (!d) return new Date();
+    if (!d) return null;
     if (d.toDate) return d.toDate();
     if (d.seconds) return new Date(d.seconds * 1000);
     return new Date(d);
   };
   
-  const [journeyDate, setJourneyDate] = useState(parseDate(startDate));
+  const [journeyDate, setJourneyDate] = useState(parseDate(customer.journeyDate));
   
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState({}); // Per-field and per-member errors
+  const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    const unsub = subscribeToMembersByCustomer(customer.id, (data) => {
+      if (data && data.length > 0) {
+        // Pre-fill members data when loaded
+        const membersData = data.map(m => ({
+          id: m.id,
+          name: m.name,
+          age: String(m.age),
+          gender: m.gender
+        }));
+        setMembers(membersData);
+        
+        // Find head index
+        const hIdx = membersData.findIndex(m => m.id === customer.headMemberId);
+        setHeadIndex(hIdx >= 0 ? hIdx : 0);
+      }
+      setLoading(false);
+    });
+    
+    return () => unsub();
+  }, [customer.id, customer.headMemberId]);
 
   const handleAddMember = () => {
     const nextMembers = [...members, { id: Date.now().toString(), name: '', age: '', gender: 'male' }];
@@ -105,12 +129,15 @@ export const AddCustomerScreen = ({ route, navigation }) => {
     }
 
     setSaving(true);
-    const result = await createCustomerAndMembers(
-      tourId, 
+    const result = await updateCustomerAndMembers(
+      customer.id, 
+      customer.tourId, 
       pricePerHead, 
       groupType, 
       members, 
-      headIndex,
+      headIndex, 
+      customer.membersCount,
+      customer.paidAmount,
       phoneNumber,
       pnr,
       bookingType,
@@ -118,12 +145,22 @@ export const AddCustomerScreen = ({ route, navigation }) => {
     );
     
     if (result.success) {
-      navigation.goBack();
+      Alert.alert("Success", "Customer updated successfully", [
+        { text: "OK", onPress: () => navigation.goBack() }
+      ]);
     } else {
-      Alert.alert("Error", "Failed to save customer booking.");
+      Alert.alert("Error", "Failed to update customer booking.");
     }
     setSaving(false);
   };
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -131,7 +168,7 @@ export const AddCustomerScreen = ({ route, navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <ChevronLeft color={COLORS.text} size={28} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add Customer Booking</Text>
+        <Text style={styles.headerTitle}>Edit Customer Booking</Text>
       </View>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
@@ -143,7 +180,7 @@ export const AddCustomerScreen = ({ route, navigation }) => {
             <Text style={styles.summaryLabel}>Total Amount: <Text style={styles.summaryValueAmount}>₹{members.length * pricePerHead}</Text></Text>
           </View>
 
-          {/* New Fields Section */}
+          {/* Booking Info Fields */}
           <Text style={styles.sectionTitle}>Booking & Contact Information</Text>
           <View style={styles.bookingCard}>
             <Text style={styles.inputLabel}>Phone Number</Text>
@@ -192,7 +229,7 @@ export const AddCustomerScreen = ({ route, navigation }) => {
             {errors.journeyDate && <Text style={[styles.errorText, { marginTop: -SPACE.sm }]}>{errors.journeyDate}</Text>}
           </View>
 
-          {/* Members Section */}
+          {/* Members List */}
           <Text style={styles.sectionTitle}>Members ({members.length})</Text>
           
           {members.map((member, index) => (
@@ -204,7 +241,7 @@ export const AddCustomerScreen = ({ route, navigation }) => {
                     onPress={() => setHeadIndex(index)}
                   >
                     <View style={[styles.radioOuter, headIndex === index && styles.radioOuterSelected]}>
-                      {headIndex === index && <View style={styles.radioInner} />}
+                       {headIndex === index && <View style={styles.radioInner} />}
                     </View>
                     <Text style={styles.headToggleText}>{headIndex === index ? 'Head of Family' : 'Make Head'}</Text>
                   </TouchableOpacity>
@@ -268,7 +305,7 @@ export const AddCustomerScreen = ({ route, navigation }) => {
         <View style={styles.footer}>
           <TouchableOpacity onPress={handleSave} disabled={saving} style={styles.saveBtn}>
             <LinearGradient colors={[COLORS.primary, COLORS.secondary]} style={styles.saveGradient}>
-              {saving ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.saveText}>Complete Booking</Text>}
+              {saving ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.saveText}>Update Booking</Text>}
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -291,7 +328,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: SPACE.sm, color: COLORS.text, marginTop: SPACE.sm },
   bookingCard: { backgroundColor: COLORS.white, padding: SPACE.md, borderRadius: ROUNDING.md, marginBottom: SPACE.lg, borderWidth: 1, borderColor: '#e2e8f0' },
   inputLabel: { fontSize: 13, fontWeight: '600', color: COLORS.text, marginBottom: 6 },
-  
+
   bookingTypeContainer: { flexDirection: 'row', gap: SPACE.xs, marginBottom: SPACE.md, backgroundColor: '#f8fafc', padding: 3, borderRadius: ROUNDING.sm, borderWidth: 1, borderColor: '#e2e8f0' },
   bookingTypeBtn: { flex: 1, paddingVertical: SPACE.sm, borderRadius: ROUNDING.sm - 2, alignItems: 'center', justifyContent: 'center' },
   bookingTypeBtnActive: { backgroundColor: COLORS.primary },

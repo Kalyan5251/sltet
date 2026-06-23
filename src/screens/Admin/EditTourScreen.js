@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useAuth } from '../../context/AuthContext';
-import { createTour } from '../../api/tourService';
+import { updateTour } from '../../api/tourService';
 import { COLORS, SPACE, ROUNDING } from '../../theme/Theme';
 import { DatePicker } from '../../components/DatePicker';
 import { z } from 'zod';
@@ -20,16 +19,26 @@ const tourSchema = z.object({
   path: ["endDate"]
 });
 
-export const CreateTourScreen = ({ navigation }) => {
-  const { user } = useAuth();
-  const [name, setName] = useState('');
-  const [pricePerHead, setPricePerHead] = useState('');
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
-  const [creating, setCreating] = useState(false);
+export const EditTourScreen = ({ route, navigation }) => {
+  const { tourId, currentName, currentPrice, currentStartDate, currentEndDate } = route.params;
+  const [name, setName] = useState(currentName || '');
+  const [pricePerHead, setPricePerHead] = useState(currentPrice ? String(currentPrice) : '');
+  
+  // Helper to safely parse dates from Firestore Timestamp / Date string / null
+  const parseDate = (d) => {
+    if (!d) return null;
+    if (d.toDate) return d.toDate(); // Firestore timestamp
+    if (d.seconds) return new Date(d.seconds * 1000); // Standard timestamp representation
+    return new Date(d);
+  };
+
+  const [startDate, setStartDate] = useState(parseDate(currentStartDate));
+  const [endDate, setEndDate] = useState(parseDate(currentEndDate));
+  
+  const [updating, setUpdating] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const handleCreate = async () => {
+  const handleUpdate = async () => {
     setErrors({});
     
     const validationResult = tourSchema.safeParse({
@@ -42,7 +51,6 @@ export const CreateTourScreen = ({ navigation }) => {
     if (!validationResult.success) {
       const formattedErrors = {};
       validationResult.error.errors.forEach(err => {
-        // Handle refinement or nested paths
         const fieldName = err.path[0];
         formattedErrors[fieldName] = err.message;
       });
@@ -50,21 +58,23 @@ export const CreateTourScreen = ({ navigation }) => {
       return;
     }
 
-    setCreating(true);
-    const result = await createTour(
-      validationResult.data.name,
+    setUpdating(true);
+    const result = await updateTour(
+      tourId, 
+      validationResult.data.name, 
       validationResult.data.pricePerHead,
-      user.uid,
       validationResult.data.startDate.toISOString(),
       validationResult.data.endDate.toISOString()
     );
     
     if (result.success) {
-      navigation.goBack();
+      Alert.alert("Success", "Tour updated successfully", [
+        { text: "OK", onPress: () => navigation.goBack() }
+      ]);
     } else {
-      Alert.alert("Error", "Failed to create tour.");
+      Alert.alert("Error", "Failed to update tour.");
     }
-    setCreating(false);
+    setUpdating(false);
   };
 
   return (
@@ -111,12 +121,12 @@ export const CreateTourScreen = ({ navigation }) => {
         />
         {errors.endDate && <Text style={[styles.errorText, { marginTop: -SPACE.sm, marginBottom: SPACE.md }]}>{errors.endDate}</Text>}
 
-        <TouchableOpacity onPress={handleCreate} disabled={creating} style={styles.btn}>
+        <TouchableOpacity onPress={handleUpdate} disabled={updating} style={styles.btn}>
           <LinearGradient colors={[COLORS.primary, COLORS.secondary]} style={styles.btnGradient}>
-            {creating ? (
+            {updating ? (
               <ActivityIndicator color={COLORS.white} />
             ) : (
-              <Text style={styles.btnText}>Create Tour</Text>
+              <Text style={styles.btnText}>Update Tour</Text>
             )}
           </LinearGradient>
         </TouchableOpacity>

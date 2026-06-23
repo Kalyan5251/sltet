@@ -1,4 +1,4 @@
-import { collection, addDoc, onSnapshot, query, where, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, where, doc, writeBatch, serverTimestamp, increment } from 'firebase/firestore';
 import { db } from './firebaseConfig';
 
 const PAYMENTS_COLLECTION = 'payments';
@@ -17,7 +17,7 @@ export const subscribeToPaymentsByCustomer = (customerId, callback) => {
   }, error => callback(null, error));
 };
 
-export const addPayment = async (customerId, amount, currentDue, currentPaid, addedByEmail) => {
+export const addPayment = async (customerId, amount, mode, receiverName, receiverPhone, currentDue, currentPaid, addedByEmail) => {
   try {
     const payAmt = Number(amount);
     if (payAmt <= 0) return { success: false, error: "Payment must be positive" };
@@ -27,12 +27,21 @@ export const addPayment = async (customerId, amount, currentDue, currentPaid, ad
     
     // 1. Payment doc
     const paymentRef = doc(collection(db, PAYMENTS_COLLECTION));
-    batch.set(paymentRef, {
+    
+    const paymentData = {
       customerId,
       amount: payAmt,
+      mode: mode || 'cash',
+      receiverName: receiverName || '',
       addedBy: addedByEmail,
       createdAt: serverTimestamp()
-    });
+    };
+    
+    if (mode === 'online') {
+      paymentData.receiverPhone = receiverPhone || '';
+    }
+
+    batch.set(paymentRef, paymentData);
 
     // 2. Update customer doc
     const customerRef = doc(db, CUSTOMERS_COLLECTION, customerId);
@@ -46,6 +55,28 @@ export const addPayment = async (customerId, amount, currentDue, currentPaid, ad
     return { success: true };
   } catch (error) {
     console.error("Error adding payment", error);
+    return { success: false, error };
+  }
+};
+
+export const deletePayment = async (paymentId, customerId, amount) => {
+  try {
+    const payAmt = Number(amount);
+    const batch = writeBatch(db);
+    
+    const paymentRef = doc(db, PAYMENTS_COLLECTION, paymentId);
+    batch.delete(paymentRef);
+    
+    const customerRef = doc(db, CUSTOMERS_COLLECTION, customerId);
+    batch.update(customerRef, {
+      paidAmount: increment(-payAmt),
+      dueAmount: increment(payAmt)
+    });
+
+    await batch.commit();
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting payment", error);
     return { success: false, error };
   }
 };

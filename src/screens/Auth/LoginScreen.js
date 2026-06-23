@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../context/AuthContext';
@@ -38,6 +38,10 @@ export const LoginScreen = () => {
         style={styles.keyboardView}
       >
         <View style={styles.formContainer}>
+          <Image 
+            source={require('../../../assets/slt_logo.jpeg')} 
+            style={styles.logo} 
+          />
           <Text style={styles.title}>Tour Expense</Text>
           <Text style={styles.subtitle}>Manager</Text>
 
@@ -102,6 +106,14 @@ const styles = StyleSheet.create({
     ...SHADOWS.glass,
     borderWidth: 1,
     borderColor: COLORS.border,
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    alignSelf: 'center',
+    marginBottom: SPACE.md,
+    borderRadius: ROUNDING.md,
+    resizeMode: 'contain',
   },
   title: {
     fontSize: 28,
