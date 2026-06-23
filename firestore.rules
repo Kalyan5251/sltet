@@ -1,0 +1,60 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Rules for users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if false; // Only manageable through backend/admin console
+    }
+
+    // Rules for tours collection
+    match /tours/{tourId} {
+      allow read: if isAuthenticated(); // Both staff and admin can read tours
+      allow write: if isAdmin();        // Only admin can create/update/delete tours
+    }
+
+    // Rules for customers collection
+    match /customers/{customerId} {
+      allow read: if isAuthenticated();
+      // Only admin can create/delete/update, exception for payment increments?
+      // For simplicity in a backend-less app, we'll allow staff to update customers (paidAmount)
+      allow write: if isAuthenticated(); 
+    }
+
+    // Rules for members collection
+    match /members/{memberId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Rules for payments collection
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); 
+    }
+
+    // Rules for expenses collection
+    match /expenses/{expenseId} {
+      // Staff can create their own expenses
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      // Admin can read all, Staff can read only their own
+      allow read: if isAuthenticated() && (isAdmin() || resource.data.userId == request.auth.uid);
+      
+      // Only Admin can update or delete
+      allow update, delete: if isAdmin();
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "904771611368",
+    "project_id": "tourexpensetracker",
+    "storage_bucket": "tourexpensetracker.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:904771611368:android:cdc0f08028488b2172375d",
+        "android_client_info": {
+          "package_name": "com.example.expensetracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDshLKjupZDOnDs1amjFc3MSp9CG-yQ5d0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
